@@ -35,7 +35,7 @@ function Logo({ dark = false }) {
 
 export default function Footer() {
   const pathname = usePathname();
-  if (pathname.startsWith("/auth")) return null;
+  if ((pathname.startsWith("/auth") || pathname.startsWith("/userdashboard"))) return null;
 
   const linkClass = "text-body-sm text-outline-variant transition-colors hover:text-white";
 

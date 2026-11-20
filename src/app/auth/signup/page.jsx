@@ -2,30 +2,7 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { Target, Mail, Lock, User, Eye, EyeOff, ArrowRight, ArrowLeft, Check, Info } from "lucide-react";
-
-// ---------- backend hook ----------
-// TODO: when Django is ready, set NEXT_PUBLIC_API_URL in .env.local (e.g. http://localhost:8000)
-// and create POST /api/auth/register/. Session auth also needs the CSRF token header on POST
-// requests, which we will add when the backend exists.
-// Until then the request is simulated and always succeeds so the success screen can be tested.
-async function registerUser({ name, email, password }) {
-  const base = process.env.NEXT_PUBLIC_API_URL;
-  if (!base) {
-    await new Promise((resolve) => setTimeout(resolve, 800));
-    return;
-  }
-  const res = await fetch(`${base}/api/auth/register/`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    credentials: "include",
-    body: JSON.stringify({ name, email, password }),
-  });
-  if (!res.ok) {
-    const error = new Error("Registration failed");
-    error.status = res.status; // 409 or 400 is treated as "email already registered"
-    throw error;
-  }
-}
+import { registerUser } from "@/services/auth";
 
 // ---------- validation and password strength ----------
 function validate(v) {
@@ -164,9 +141,8 @@ function SuccessScreen() {
       <p className="max-w-sm text-body-md text-on-surface-variant">
         Continue to complete your profile.
       </p>
-      {/* TODO: point this to the profile setup page once it exists */}
       <Link
-        href="/auth/login"
+        href="/userdashboard/dashboard"
         className="group mt-2 inline-flex h-12 items-center justify-center gap-2 rounded-xl bg-primary-container px-8 text-label-md text-on-primary shadow-[0_6px_20px_rgba(79,70,229,0.3)] transition-all duration-200 hover:bg-primary active:scale-[0.98]"
       >
         Continue <ArrowRight size={18} className="transition-transform duration-200 group-hover:translate-x-1" />
@@ -191,7 +167,13 @@ function SignupForm({ onSuccess }) {
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
     setValues((v) => ({ ...v, [name]: type === "checkbox" ? checked : value }));
-    if (name === "email" && serverErrors.email) setServerErrors({});
+    if (serverErrors[name]) {
+      setServerErrors((prev) => {
+        const next = { ...prev };
+        delete next[name];
+        return next;
+      });
+    }
   };
   const handleBlur = (e) => setTouched((t) => ({ ...t, [e.target.name]: true }));
 
@@ -207,8 +189,14 @@ function SignupForm({ onSuccess }) {
       onSuccess();
     } catch (err) {
       setStatus("error");
-      if (err.status === 409 || err.status === 400) {
-        setServerErrors({ email: "An account with this email already exists." });
+      const d = err.data || {};
+      if (err.status === 400 && (d.email || d.password || d.name)) {
+        // Django sends field errors like { email: ["An account with this email already exists."] }
+        setServerErrors({
+          ...(d.email && { email: d.email[0] }),
+          ...(d.password && { password: d.password[0] }),
+          ...(d.name && { name: d.name[0] }),
+        });
       } else {
         setFormError("Something went wrong. Please try again.");
       }

@@ -3,32 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Target, Mail, Lock, Eye, EyeOff, ArrowRight, ArrowLeft, Check, Info } from "lucide-react";
-
-// ---------- backend hook ----------
-// TODO: when Django is ready, set NEXT_PUBLIC_API_URL in .env.local (e.g. http://localhost:8000)
-// and create POST /api/auth/login/ using Django sessions. Session auth also needs the CSRF token
-// header on POST requests, which we will add when the backend exists.
-// Until then the request is simulated and always fails, so the error state can be tested.
-async function loginUser({ email, password, remember }) {
-  const base = process.env.NEXT_PUBLIC_API_URL;
-  if (!base) {
-    await new Promise((resolve) => setTimeout(resolve, 800));
-    const error = new Error("Invalid credentials");
-    error.status = 401;
-    throw error;
-  }
-  const res = await fetch(`${base}/api/auth/login/`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    credentials: "include",
-    body: JSON.stringify({ email, password, remember }),
-  });
-  if (!res.ok) {
-    const error = new Error("Login failed");
-    error.status = res.status;
-    throw error;
-  }
-}
+import { loginUser } from "@/services/auth";
 
 function validate(v) {
   const errors = {};
@@ -162,7 +137,7 @@ function LoginForm() {
     setFormError("");
     try {
       await loginUser(values);
-      router.push("/dashboard"); // TODO: create the dashboard route
+      router.push("/userdashboard/dashboard");
     } catch (err) {
       setStatus("error");
       setFormError(

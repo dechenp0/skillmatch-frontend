@@ -69,7 +69,7 @@ export default function Navbar() {
   const isActive = (href) =>
     href === "/" ? pathname === "/" || pathname === "/home" : pathname.startsWith(href);
 
-  if (pathname.startsWith("/auth")) return null; // login/signup have their own layout
+  if ((pathname.startsWith("/auth") || pathname.startsWith("/userdashboard"))) return null; // login/signup have their own layout
 
   return (
     <>
